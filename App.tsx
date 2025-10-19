@@ -14,9 +14,11 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -60,6 +62,12 @@ function AppContent() {
   // États de l'application
   const [events, setEvents] = useState<Event[]>([]);
   const [editingIndex, setEditingIndex] = useState(-1);
+
+  // États pour les date/time pickers
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedTime, setSelectedTime] = useState(new Date());
 
   const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
@@ -209,6 +217,8 @@ function AppContent() {
     setHour('');
     setRepeat('');
     setSelectedDays([]);
+    setSelectedDate(new Date());
+    setSelectedTime(new Date());
   };
 
   const cancelEdit = () => {
@@ -221,6 +231,27 @@ function AppContent() {
     console.log('=== EVENTS JSON ===');
     console.log(jsonData);
     Alert.alert('Succès', 'Les données ont été exportées dans la console. Vérifiez les logs de votre application.');
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setSelectedDate(selectedDate);
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const year = selectedDate.getFullYear();
+      setDate(`${day}/${month}/${year}`);
+    }
+  };
+
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(Platform.OS === 'ios');
+    if (selectedTime) {
+      setSelectedTime(selectedTime);
+      const hours = String(selectedTime.getHours()).padStart(2, '0');
+      const minutes = String(selectedTime.getMinutes()).padStart(2, '0');
+      setHour(`${hours}:${minutes}`);
+    }
   };
 
   return (
@@ -238,17 +269,19 @@ function AppContent() {
         {/* Formulaire */}
         <View style={styles.form}>
           <Text style={styles.label}>Action:</Text>
-          <View style={styles.pickerContainer}>
+          <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={action}
               onValueChange={setAction}
               style={styles.picker}
+              itemStyle={styles.pickerItem}
             >
-              <Picker.Item label="-- Choose Action --" value="" />
+              <Picker.Item label="-- Choisir une action --" value="" />
               <Picker.Item label="Click" value="click" />
               <Picker.Item label="Double Click" value="double_click" />
             </Picker>
           </View>
+          {action && <Text style={styles.selectedValue}>Sélectionné: {action}</Text>}
 
           <Text style={styles.label}>Humidity (%):</Text>
           <TextInput
@@ -257,6 +290,7 @@ function AppContent() {
             onChangeText={setHumidity}
             keyboardType="numeric"
             placeholder="e.g. 70"
+            placeholderTextColor="#999"
           />
 
           <Text style={styles.label}>Temperature (°C):</Text>
@@ -266,6 +300,7 @@ function AppContent() {
             onChangeText={setTemperature}
             keyboardType="numeric"
             placeholder="e.g. 35"
+            placeholderTextColor="#999"
           />
 
           <Text style={styles.label}>Luminosity (lx):</Text>
@@ -275,38 +310,64 @@ function AppContent() {
             onChangeText={setLuminosity}
             keyboardType="numeric"
             placeholder="e.g. 200"
+            placeholderTextColor="#999"
           />
 
-          <Text style={styles.label}>Date (DD/MM/YYYY):</Text>
-          <TextInput
-            style={styles.input}
-            value={date}
-            onChangeText={setDate}
-            placeholder="e.g. 25/12/2024"
-          />
+          <Text style={styles.label}>Date:</Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={styles.dateButtonText}>
+              {date || 'Sélectionner une date'}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display="default"
+              onChange={handleDateChange}
+            />
+          )}
 
-          <Text style={styles.label}>Hour (HH:MM):</Text>
-          <TextInput
-            style={styles.input}
-            value={hour}
-            onChangeText={setHour}
-            placeholder="e.g. 14:30"
-          />
+          <Text style={styles.label}>Hour:</Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <Text style={styles.dateButtonText}>
+              {hour || 'Sélectionner une heure'}
+            </Text>
+          </TouchableOpacity>
+          {showTimePicker && (
+            <DateTimePicker
+              value={selectedTime}
+              mode="time"
+              display="default"
+              onChange={handleTimeChange}
+              is24Hour={true}
+            />
+          )}
 
           <Text style={styles.label}>Repeat:</Text>
-          <View style={styles.pickerContainer}>
+          <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={repeat}
               onValueChange={setRepeat}
               style={styles.picker}
+              itemStyle={styles.pickerItem}
               enabled={!date}
             >
-              <Picker.Item label="-- Choose Repeat Option --" value="" />
+              <Picker.Item label="-- Choisir une option --" value="" />
               <Picker.Item label="Always" value="always" />
               <Picker.Item label="Never" value="never" />
               <Picker.Item label="Custom Days" value="days" />
             </Picker>
           </View>
+          {repeat && repeat !== 'days' && (
+            <Text style={styles.selectedValue}>Sélectionné: {repeat}</Text>
+          )}
 
           {repeat === 'days' && (
             <View style={styles.daysContainer}>
@@ -421,6 +482,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginVertical: 20,
+    color: '#333',
   },
   fileActions: {
     flexDirection: 'row',
@@ -450,6 +512,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 5,
     fontWeight: '500',
+    color: '#333',
   },
   input: {
     borderWidth: 1,
@@ -457,15 +520,41 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#333',
   },
-  pickerContainer: {
+  pickerWrapper: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 5,
+    backgroundColor: '#fff',
     overflow: 'hidden',
   },
   picker: {
-    height: 50,
+    height: Platform.OS === 'ios' ? 150 : 50,
+    width: '100%',
+  },
+  pickerItem: {
+    fontSize: 16,
+    height: 150,
+  },
+  selectedValue: {
+    fontSize: 14,
+    color: '#007bff',
+    marginTop: 5,
+    fontWeight: '600',
+  },
+  dateButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#333',
   },
   daysContainer: {
     flexDirection: 'row',
@@ -543,6 +632,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
+    color: '#333',
   },
   noEvents: {
     fontStyle: 'italic',
@@ -564,6 +654,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 5,
+    color: '#333',
   },
   eventConditions: {
     color: '#555',
