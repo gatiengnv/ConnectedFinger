@@ -311,13 +311,6 @@ function AppContent() {
     resetForm();
   };
 
-  const exportToConsole = () => {
-    const jsonData = JSON.stringify({ events }, null, 2);
-    console.log('=== EVENTS JSON ===');
-    console.log(jsonData);
-    Alert.alert('Success', 'Data has been exported to console. Check your application logs.');
-  };
-
   const handleDateChange = (event: any, newDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
     if (newDate) {
@@ -357,18 +350,7 @@ function AppContent() {
   return (
     <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
       <ScrollView style={styles.scrollView}>
-        <Text style={styles.title}>Event JSON Builder</Text>
-
-        {/* Export button */}
-        <View style={styles.fileActions}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={exportToConsole}
-            accessibilityState={{ disabled: false }}
-          >
-            <Text style={styles.buttonText}>Export to Console</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.title}>FingerKonnect</Text>
 
         {/* Form */}
         <View style={styles.form}>
@@ -783,17 +765,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 20,
     color: '#333',
-  },
-  fileActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginVertical: 20,
-  },
-  saveButton: {
-    backgroundColor: '#28a745',
-    padding: 12,
-    borderRadius: 5,
-    marginHorizontal: 10,
   },
   form: {
     backgroundColor: 'white',
