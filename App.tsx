@@ -15,8 +15,8 @@ import {
   StyleSheet,
   Alert,
   Platform,
+  Modal,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {
@@ -69,7 +69,24 @@ function AppContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(new Date());
 
+  // États pour les modals de sélection
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [showRepeatModal, setShowRepeatModal] = useState(false);
+
   const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+  const actionOptions = [
+    { value: '', label: '-- Choisir une action --' },
+    { value: 'click', label: 'Click' },
+    { value: 'double_click', label: 'Double Click' },
+  ];
+
+  const repeatOptions = [
+    { value: '', label: '-- Choisir une option --' },
+    { value: 'always', label: 'Always' },
+    { value: 'never', label: 'Never' },
+    { value: 'days', label: 'Custom Days' },
+  ];
 
   // Charger les événements au démarrage
   useEffect(() => {
@@ -269,19 +286,15 @@ function AppContent() {
         {/* Formulaire */}
         <View style={styles.form}>
           <Text style={styles.label}>Action:</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={action}
-              onValueChange={setAction}
-              style={styles.picker}
-              itemStyle={styles.pickerItem}
-            >
-              <Picker.Item label="-- Choisir une action --" value="" />
-              <Picker.Item label="Click" value="click" />
-              <Picker.Item label="Double Click" value="double_click" />
-            </Picker>
-          </View>
-          {action && <Text style={styles.selectedValue}>Sélectionné: {action}</Text>}
+          <TouchableOpacity
+            style={styles.selectButton}
+            onPress={() => setShowActionModal(true)}
+          >
+            <Text style={[styles.selectButtonText, !action && styles.selectPlaceholder]}>
+              {action ? actionOptions.find(opt => opt.value === action)?.label : '-- Choisir une action --'}
+            </Text>
+            <Text style={styles.selectArrow}>▼</Text>
+          </TouchableOpacity>
 
           <Text style={styles.label}>Humidity (%):</Text>
           <TextInput
@@ -351,23 +364,16 @@ function AppContent() {
           )}
 
           <Text style={styles.label}>Repeat:</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={repeat}
-              onValueChange={setRepeat}
-              style={styles.picker}
-              itemStyle={styles.pickerItem}
-              enabled={!date}
-            >
-              <Picker.Item label="-- Choisir une option --" value="" />
-              <Picker.Item label="Always" value="always" />
-              <Picker.Item label="Never" value="never" />
-              <Picker.Item label="Custom Days" value="days" />
-            </Picker>
-          </View>
-          {repeat && repeat !== 'days' && (
-            <Text style={styles.selectedValue}>Sélectionné: {repeat}</Text>
-          )}
+          <TouchableOpacity
+            style={styles.selectButton}
+            onPress={() => setShowRepeatModal(true)}
+            disabled={!!date}
+          >
+            <Text style={[styles.selectButtonText, !repeat && styles.selectPlaceholder, !!date && styles.selectDisabled]}>
+              {repeat ? repeatOptions.find(opt => opt.value === repeat)?.label : '-- Choisir une option --'}
+            </Text>
+            <Text style={[styles.selectArrow, !!date && styles.selectDisabled]}>▼</Text>
+          </TouchableOpacity>
 
           {repeat === 'days' && (
             <View style={styles.daysContainer}>
@@ -465,6 +471,97 @@ function AppContent() {
           )}
         </View>
       </ScrollView>
+
+      {/* Modal pour Action */}
+      <Modal
+        visible={showActionModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowActionModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowActionModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Choisir une action</Text>
+            {actionOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.modalOption,
+                  action === option.value && styles.modalOptionSelected
+                ]}
+                onPress={() => {
+                  setAction(option.value);
+                  setShowActionModal(false);
+                }}
+              >
+                <Text style={[
+                  styles.modalOptionText,
+                  action === option.value && styles.modalOptionTextSelected
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowActionModal(false)}
+            >
+              <Text style={styles.modalCloseText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal pour Repeat */}
+      <Modal
+        visible={showRepeatModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowRepeatModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowRepeatModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Choisir une option de répétition</Text>
+            {repeatOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.modalOption,
+                  repeat === option.value && styles.modalOptionSelected
+                ]}
+                onPress={() => {
+                  setRepeat(option.value);
+                  if (option.value !== 'days') {
+                    setSelectedDays([]);
+                  }
+                  setShowRepeatModal(false);
+                }}
+              >
+                <Text style={[
+                  styles.modalOptionText,
+                  repeat === option.value && styles.modalOptionTextSelected
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowRepeatModal(false)}
+            >
+              <Text style={styles.modalCloseText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -523,26 +620,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     color: '#333',
   },
-  pickerWrapper: {
+  selectButton: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 5,
+    padding: 12,
     backgroundColor: '#fff',
-    overflow: 'hidden',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  picker: {
-    height: Platform.OS === 'ios' ? 150 : 50,
-    width: '100%',
-  },
-  pickerItem: {
+  selectButtonText: {
     fontSize: 16,
-    height: 150,
+    color: '#333',
+    flex: 1,
   },
-  selectedValue: {
-    fontSize: 14,
-    color: '#007bff',
-    marginTop: 5,
-    fontWeight: '600',
+  selectPlaceholder: {
+    color: '#999',
+  },
+  selectDisabled: {
+    color: '#ccc',
+  },
+  selectArrow: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 10,
   },
   dateButton: {
     borderWidth: 1,
@@ -679,6 +781,59 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 5,
     marginLeft: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+    textAlign: 'center',
+  },
+  modalOption: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalOptionSelected: {
+    backgroundColor: '#e7f3ff',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  modalOptionTextSelected: {
+    color: '#007bff',
+    fontWeight: '600',
+  },
+  modalCloseButton: {
+    marginTop: 15,
+    padding: 12,
+    backgroundColor: '#6c757d',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
 
