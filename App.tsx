@@ -258,6 +258,9 @@ function AppContent() {
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const year = selectedDate.getFullYear();
       setDate(`${day}/${month}/${year}`);
+      // Si une date est sélectionnée, forcer repeat à "never"
+      setRepeat('never');
+      setSelectedDays([]);
     }
   };
 
@@ -271,6 +274,18 @@ function AppContent() {
     }
   };
 
+  const handleRepeatChange = (value: string) => {
+    setRepeat(value);
+    if (value !== 'days') {
+      setSelectedDays([]);
+    }
+    // Si repeat n'est pas "never", effacer la date
+    if (value !== 'never' && value !== '') {
+      setDate('');
+      setSelectedDate(new Date());
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
       <ScrollView style={styles.scrollView}>
@@ -278,7 +293,11 @@ function AppContent() {
 
         {/* Bouton d'export */}
         <View style={styles.fileActions}>
-          <TouchableOpacity style={styles.saveButton} onPress={exportToConsole}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={exportToConsole}
+            accessibilityState={{ disabled: false }}
+          >
             <Text style={styles.buttonText}>Exporter vers Console</Text>
           </TouchableOpacity>
         </View>
@@ -289,6 +308,7 @@ function AppContent() {
           <TouchableOpacity
             style={styles.selectButton}
             onPress={() => setShowActionModal(true)}
+            accessibilityState={{ disabled: false }}
           >
             <Text style={[styles.selectButtonText, !action && styles.selectPlaceholder]}>
               {action ? actionOptions.find(opt => opt.value === action)?.label : '-- Choisir une action --'}
@@ -328,10 +348,18 @@ function AppContent() {
 
           <Text style={styles.label}>Date:</Text>
           <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker(true)}
+            style={[styles.dateButton, (repeat && repeat !== 'never' && repeat !== '') && styles.dateButtonDisabled]}
+            onPress={() => {
+              if (repeat && repeat !== 'never' && repeat !== '') {
+                Alert.alert('Date verrouillée', 'Vous devez d\'abord mettre Repeat sur "Never" pour sélectionner une date.');
+                return;
+              }
+              setShowDatePicker(true);
+            }}
+            disabled={!!(repeat && repeat !== 'never' && repeat !== '')}
+            accessibilityState={{ disabled: Boolean(repeat && repeat !== 'never' && repeat !== '') }}
           >
-            <Text style={styles.dateButtonText}>
+            <Text style={[styles.dateButtonText, (repeat && repeat !== 'never' && repeat !== '') && styles.dateButtonTextDisabled]}>
               {date || 'Sélectionner une date'}
             </Text>
           </TouchableOpacity>
@@ -348,6 +376,7 @@ function AppContent() {
           <TouchableOpacity
             style={styles.dateButton}
             onPress={() => setShowTimePicker(true)}
+            accessibilityState={{ disabled: false }}
           >
             <Text style={styles.dateButtonText}>
               {hour || 'Sélectionner une heure'}
@@ -365,14 +394,21 @@ function AppContent() {
 
           <Text style={styles.label}>Repeat:</Text>
           <TouchableOpacity
-            style={styles.selectButton}
-            onPress={() => setShowRepeatModal(true)}
-            disabled={!!date}
+            style={[styles.selectButton, date && styles.selectButtonDisabled]}
+            onPress={() => {
+              if (date) {
+                Alert.alert('Repeat verrouillé', 'Impossible de modifier Repeat quand une date est sélectionnée. Repeat est automatiquement "Never".');
+                return;
+              }
+              setShowRepeatModal(true);
+            }}
+            disabled={Boolean(date)}
+            accessibilityState={{ disabled: Boolean(date) }}
           >
-            <Text style={[styles.selectButtonText, !repeat && styles.selectPlaceholder, !!date && styles.selectDisabled]}>
+            <Text style={[styles.selectButtonText, !repeat && styles.selectPlaceholder, date && styles.selectDisabled]}>
               {repeat ? repeatOptions.find(opt => opt.value === repeat)?.label : '-- Choisir une option --'}
             </Text>
-            <Text style={[styles.selectArrow, !!date && styles.selectDisabled]}>▼</Text>
+            <Text style={[styles.selectArrow, date && styles.selectDisabled]}>▼</Text>
           </TouchableOpacity>
 
           {repeat === 'days' && (
@@ -385,6 +421,7 @@ function AppContent() {
                     selectedDays.includes(day) && styles.dayButtonSelected,
                   ]}
                   onPress={() => toggleDay(day)}
+                  accessibilityState={{ disabled: false }}
                 >
                   <Text
                     style={[
@@ -402,20 +439,36 @@ function AppContent() {
           {/* Boutons d'action */}
           <View style={styles.formActions}>
             {editingIndex === -1 ? (
-              <TouchableOpacity style={styles.addButton} onPress={handleAddEvent}>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleAddEvent}
+                accessibilityState={{ disabled: false }}
+              >
                 <Text style={styles.buttonText}>Ajouter un événement</Text>
               </TouchableOpacity>
             ) : (
               <>
-                <TouchableOpacity style={styles.updateButton} onPress={handleUpdateEvent}>
+                <TouchableOpacity
+                  style={styles.updateButton}
+                  onPress={handleUpdateEvent}
+                  accessibilityState={{ disabled: false }}
+                >
                   <Text style={styles.buttonText}>Mettre à jour</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelButton} onPress={cancelEdit}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={cancelEdit}
+                  accessibilityState={{ disabled: false }}
+                >
                   <Text style={styles.buttonText}>Annuler</Text>
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity style={styles.resetButton} onPress={resetForm}>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={resetForm}
+              accessibilityState={{ disabled: false }}
+            >
               <Text style={styles.buttonText}>Réinitialiser</Text>
             </TouchableOpacity>
           </View>
@@ -455,12 +508,14 @@ function AppContent() {
                     <TouchableOpacity
                       style={styles.editButton}
                       onPress={() => handleEditEvent(index)}
+                      accessibilityState={{ disabled: false }}
                     >
                       <Text style={styles.buttonText}>Modifier</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.deleteButton}
                       onPress={() => handleDeleteEvent(index)}
+                      accessibilityState={{ disabled: false }}
                     >
                       <Text style={styles.buttonText}>Supprimer</Text>
                     </TouchableOpacity>
@@ -483,6 +538,7 @@ function AppContent() {
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setShowActionModal(false)}
+          accessibilityState={{ disabled: false }}
         >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Choisir une action</Text>
@@ -497,6 +553,7 @@ function AppContent() {
                   setAction(option.value);
                   setShowActionModal(false);
                 }}
+                accessibilityState={{ disabled: false }}
               >
                 <Text style={[
                   styles.modalOptionText,
@@ -509,6 +566,7 @@ function AppContent() {
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => setShowActionModal(false)}
+              accessibilityState={{ disabled: false }}
             >
               <Text style={styles.modalCloseText}>Fermer</Text>
             </TouchableOpacity>
@@ -527,6 +585,7 @@ function AppContent() {
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setShowRepeatModal(false)}
+          accessibilityState={{ disabled: false }}
         >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Choisir une option de répétition</Text>
@@ -538,12 +597,10 @@ function AppContent() {
                   repeat === option.value && styles.modalOptionSelected
                 ]}
                 onPress={() => {
-                  setRepeat(option.value);
-                  if (option.value !== 'days') {
-                    setSelectedDays([]);
-                  }
+                  handleRepeatChange(option.value);
                   setShowRepeatModal(false);
                 }}
+                accessibilityState={{ disabled: false }}
               >
                 <Text style={[
                   styles.modalOptionText,
@@ -556,6 +613,7 @@ function AppContent() {
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => setShowRepeatModal(false)}
+              accessibilityState={{ disabled: false }}
             >
               <Text style={styles.modalCloseText}>Fermer</Text>
             </TouchableOpacity>
@@ -630,6 +688,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  selectButtonDisabled: {
+    backgroundColor: '#f0f0f0',
+    borderColor: '#ccc',
+  },
   selectButtonText: {
     fontSize: 16,
     color: '#333',
@@ -657,6 +719,12 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 16,
     color: '#333',
+  },
+  dateButtonDisabled: {
+    backgroundColor: '#f0f0f0',
+  },
+  dateButtonTextDisabled: {
+    color: '#ccc',
   },
   daysContainer: {
     flexDirection: 'row',
