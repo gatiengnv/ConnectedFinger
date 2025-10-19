@@ -76,15 +76,15 @@ function AppContent() {
   const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
   const actionOptions = [
-    { value: '', label: '-- Choisir une action --' },
+    { value: '', label: '-- Choose an action --' },
     { value: 'click', label: 'Click' },
     { value: 'double_click', label: 'Double Click' },
   ];
 
   const repeatOptions = [
-    { value: '', label: '-- Choisir une option --' },
+    { value: '', label: '-- Choose an option --' },
     { value: 'always', label: 'Always' },
-    { value: 'never', label: 'Never' },
+    { value: 'one_time', label: 'One Time' },
     { value: 'days', label: 'Custom Days' },
   ];
 
@@ -121,16 +121,18 @@ function AppContent() {
 
   const validateForm = (): boolean => {
     if (!action) {
-      Alert.alert('Erreur', 'Veuillez sélectionner une action.');
+      Alert.alert('Error', 'Please select an action.');
       return false;
     }
 
     const hasCondition = humidity || temperature || luminosity;
+    const hasDateTime = date || hour;
 
-    if (!hasCondition && (!date || !hour)) {
+    // Si aucune condition et aucune date/heure, erreur
+    if (!hasCondition && !hasDateTime) {
       Alert.alert(
-        'Erreur',
-        'Vous devez spécifier à la fois une date ET une heure lorsque vous ne spécifiez pas de conditions.'
+        'Error',
+        'You must specify at least one condition (humidity, temperature, luminosity) OR a date/time.'
       );
       return false;
     }
@@ -147,7 +149,7 @@ function AppContent() {
     const event: Event = {
       action: action,
       condition: {},
-      repeat: repeatValue || 'never',
+      repeat: repeatValue || 'one_time',
     };
 
     if (humidity) event.condition.humidity = parseFloat(humidity);
@@ -167,7 +169,7 @@ function AppContent() {
     setEvents(newEvents);
     saveEvents(newEvents);
     resetForm();
-    Alert.alert('Succès', 'Événement ajouté avec succès !');
+    Alert.alert('Success', 'Event added successfully!');
   };
 
   const handleUpdateEvent = () => {
@@ -180,7 +182,7 @@ function AppContent() {
     setEvents(newEvents);
     saveEvents(newEvents);
     cancelEdit();
-    Alert.alert('Succès', 'Événement mis à jour avec succès !');
+    Alert.alert('Success', 'Event updated successfully!');
   };
 
   const handleEditEvent = (index: number) => {
@@ -198,7 +200,7 @@ function AppContent() {
       const eventDays = days.filter(day => event.repeat.includes(day));
       setSelectedDays(eventDays);
     } else {
-      setRepeat(event.repeat || 'never');
+      setRepeat(event.repeat || 'one_time');
       setSelectedDays([]);
     }
   };
@@ -206,11 +208,11 @@ function AppContent() {
   const handleDeleteEvent = (index: number) => {
     Alert.alert(
       'Confirmation',
-      'Êtes-vous sûr de vouloir supprimer cet événement ?',
+      'Are you sure you want to delete this event?',
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: 'Delete',
           style: 'destructive',
           onPress: () => {
             const newEvents = events.filter((_, i) => i !== index);
@@ -270,6 +272,40 @@ function AppContent() {
     setSelectedDays([]);
   };
 
+  // Validation functions for input values
+  const handleHumidityChange = (value: string) => {
+    if (value === '' || value === '-') {
+      setHumidity(value);
+      return;
+    }
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+      setHumidity(value);
+    }
+  };
+
+  const handleTemperatureChange = (value: string) => {
+    if (value === '' || value === '-') {
+      setTemperature(value);
+      return;
+    }
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= -100 && numValue <= 100) {
+      setTemperature(value);
+    }
+  };
+
+  const handleLuminosityChange = (value: string) => {
+    if (value === '' || value === '-') {
+      setLuminosity(value);
+      return;
+    }
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+      setLuminosity(value);
+    }
+  };
+
   const cancelEdit = () => {
     setEditingIndex(-1);
     resetForm();
@@ -279,7 +315,7 @@ function AppContent() {
     const jsonData = JSON.stringify({ events }, null, 2);
     console.log('=== EVENTS JSON ===');
     console.log(jsonData);
-    Alert.alert('Succès', 'Les données ont été exportées dans la console. Vérifiez les logs de votre application.');
+    Alert.alert('Success', 'Data has been exported to console. Check your application logs.');
   };
 
   const handleDateChange = (event: any, newDate?: Date) => {
@@ -290,8 +326,8 @@ function AppContent() {
       const month = String(newDate.getMonth() + 1).padStart(2, '0');
       const year = newDate.getFullYear();
       setDate(`${day}/${month}/${year}`);
-      // Si une date est sélectionnée, forcer repeat à "never"
-      setRepeat('never');
+      // If a date is selected, force repeat to "one_time"
+      setRepeat('one_time');
       setSelectedDays([]);
     }
   };
@@ -311,8 +347,8 @@ function AppContent() {
     if (value !== 'days') {
       setSelectedDays([]);
     }
-    // Si repeat n'est pas "never", effacer la date
-    if (value !== 'never' && value !== '') {
+    // If repeat is not "one_time", clear the date
+    if (value !== 'one_time' && value !== '') {
       setDate('');
       setSelectedDate(new Date());
     }
@@ -323,18 +359,18 @@ function AppContent() {
       <ScrollView style={styles.scrollView}>
         <Text style={styles.title}>Event JSON Builder</Text>
 
-        {/* Bouton d'export */}
+        {/* Export button */}
         <View style={styles.fileActions}>
           <TouchableOpacity
             style={styles.saveButton}
             onPress={exportToConsole}
             accessibilityState={{ disabled: false }}
           >
-            <Text style={styles.buttonText}>Exporter vers Console</Text>
+            <Text style={styles.buttonText}>Export to Console</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Formulaire */}
+        {/* Form */}
         <View style={styles.form}>
           <View style={styles.fieldContainer}>
             <Text style={styles.label}>Action:</Text>
@@ -354,7 +390,7 @@ function AppContent() {
             accessibilityState={{ disabled: false }}
           >
             <Text style={[styles.selectButtonText, !action && styles.selectPlaceholder]}>
-              {action ? actionOptions.find(opt => opt.value === action)?.label : '-- Choisir une action --'}
+              {action ? actionOptions.find(opt => opt.value === action)?.label : '-- Choose an action --'}
             </Text>
             <Text style={styles.selectArrow}>▼</Text>
           </TouchableOpacity>
@@ -374,9 +410,9 @@ function AppContent() {
           <TextInput
             style={styles.input}
             value={humidity}
-            onChangeText={setHumidity}
+            onChangeText={handleHumidityChange}
             keyboardType="numeric"
-            placeholder="e.g. 70"
+            placeholder="0-100"
             placeholderTextColor="#999"
           />
 
@@ -395,14 +431,14 @@ function AppContent() {
           <TextInput
             style={styles.input}
             value={temperature}
-            onChangeText={setTemperature}
+            onChangeText={handleTemperatureChange}
             keyboardType="numeric"
-            placeholder="e.g. 35"
+            placeholder="-100 to 100"
             placeholderTextColor="#999"
           />
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Luminosity (lx):</Text>
+            <Text style={styles.label}>Luminosity (%):</Text>
             {luminosity && (
               <TouchableOpacity
                 style={styles.clearButton}
@@ -416,9 +452,9 @@ function AppContent() {
           <TextInput
             style={styles.input}
             value={luminosity}
-            onChangeText={setLuminosity}
+            onChangeText={handleLuminosityChange}
             keyboardType="numeric"
-            placeholder="e.g. 200"
+            placeholder="0-100"
             placeholderTextColor="#999"
           />
 
@@ -435,19 +471,19 @@ function AppContent() {
             )}
           </View>
           <TouchableOpacity
-            style={[styles.dateButton, (repeat && repeat !== 'never' && repeat !== '') && styles.dateButtonDisabled]}
+            style={[styles.dateButton, (repeat && repeat !== 'one_time' && repeat !== '') && styles.dateButtonDisabled]}
             onPress={() => {
-              if (repeat && repeat !== 'never' && repeat !== '') {
-                Alert.alert('Date verrouillée', 'Vous devez d\'abord mettre Repeat sur "Never" pour sélectionner une date.');
+              if (repeat && repeat !== 'one_time' && repeat !== '') {
+                Alert.alert('Date Locked', 'You must first set Repeat to "One Time" to select a date.');
                 return;
               }
               setShowDatePicker(true);
             }}
-            disabled={!!(repeat && repeat !== 'never' && repeat !== '')}
-            accessibilityState={{ disabled: Boolean(repeat && repeat !== 'never' && repeat !== '') }}
+            disabled={!!(repeat && repeat !== 'one_time' && repeat !== '')}
+            accessibilityState={{ disabled: Boolean(repeat && repeat !== 'one_time' && repeat !== '') }}
           >
-            <Text style={[styles.dateButtonText, (repeat && repeat !== 'never' && repeat !== '') && styles.dateButtonTextDisabled]}>
-              {date || 'Sélectionner une date'}
+            <Text style={[styles.dateButtonText, (repeat && repeat !== 'one_time' && repeat !== '') && styles.dateButtonTextDisabled]}>
+              {date || 'Select a date'}
             </Text>
           </TouchableOpacity>
           {showDatePicker && (
@@ -477,7 +513,7 @@ function AppContent() {
             accessibilityState={{ disabled: false }}
           >
             <Text style={styles.dateButtonText}>
-              {hour || 'Sélectionner une heure'}
+              {hour || 'Select a time'}
             </Text>
           </TouchableOpacity>
           {showTimePicker && (
@@ -506,7 +542,7 @@ function AppContent() {
             style={[styles.selectButton, date && styles.selectButtonDisabled]}
             onPress={() => {
               if (date) {
-                Alert.alert('Repeat verrouillé', 'Impossible de modifier Repeat quand une date est sélectionnée. Repeat est automatiquement "Never".');
+                Alert.alert('Repeat Locked', 'Cannot modify Repeat when a date is selected. Repeat is automatically "One Time".');
                 return;
               }
               setShowRepeatModal(true);
@@ -515,7 +551,7 @@ function AppContent() {
             accessibilityState={{ disabled: Boolean(date) }}
           >
             <Text style={[styles.selectButtonText, !repeat && styles.selectPlaceholder, date && styles.selectDisabled]}>
-              {repeat ? repeatOptions.find(opt => opt.value === repeat)?.label : '-- Choisir une option --'}
+              {repeat ? repeatOptions.find(opt => opt.value === repeat)?.label : '-- Choose an option --'}
             </Text>
             <Text style={[styles.selectArrow, date && styles.selectDisabled]}>▼</Text>
           </TouchableOpacity>
@@ -545,7 +581,7 @@ function AppContent() {
             </View>
           )}
 
-          {/* Boutons d'action */}
+          {/* Action buttons */}
           <View style={styles.formActions}>
             {editingIndex === -1 ? (
               <TouchableOpacity
@@ -553,7 +589,7 @@ function AppContent() {
                 onPress={handleAddEvent}
                 accessibilityState={{ disabled: false }}
               >
-                <Text style={styles.buttonText}>Ajouter un événement</Text>
+                <Text style={styles.buttonText}>Add Event</Text>
               </TouchableOpacity>
             ) : (
               <>
@@ -562,14 +598,14 @@ function AppContent() {
                   onPress={handleUpdateEvent}
                   accessibilityState={{ disabled: false }}
                 >
-                  <Text style={styles.buttonText}>Mettre à jour</Text>
+                  <Text style={styles.buttonText}>Update</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={cancelEdit}
                   accessibilityState={{ disabled: false }}
                 >
-                  <Text style={styles.buttonText}>Annuler</Text>
+                  <Text style={styles.buttonText}>Cancel</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -578,27 +614,27 @@ function AppContent() {
               onPress={resetForm}
               accessibilityState={{ disabled: false }}
             >
-              <Text style={styles.buttonText}>Réinitialiser tout</Text>
+              <Text style={styles.buttonText}>Reset All</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Liste des événements */}
+        {/* Events list */}
         <View style={styles.eventsList}>
-          <Text style={styles.eventsTitle}>Événements enregistrés ({events.length})</Text>
+          <Text style={styles.eventsTitle}>Saved Events ({events.length})</Text>
           {events.length === 0 ? (
-            <Text style={styles.noEvents}>Aucun événement enregistré.</Text>
+            <Text style={styles.noEvents}>No saved events.</Text>
           ) : (
             events.map((event, index) => {
               const conditions = [];
               if (event.condition.humidity !== undefined)
-                conditions.push(`Humidité: ${event.condition.humidity}%`);
+                conditions.push(`Humidity: ${event.condition.humidity}%`);
               if (event.condition.temperature !== undefined)
-                conditions.push(`Température: ${event.condition.temperature}°C`);
+                conditions.push(`Temperature: ${event.condition.temperature}°C`);
               if (event.condition.luminosity !== undefined)
-                conditions.push(`Luminosité: ${event.condition.luminosity}lx`);
+                conditions.push(`Luminosity: ${event.condition.luminosity}%`);
               if (event.condition.date) conditions.push(`Date: ${event.condition.date}`);
-              if (event.condition.hour) conditions.push(`Heure: ${event.condition.hour}`);
+              if (event.condition.hour) conditions.push(`Time: ${event.condition.hour}`);
 
               return (
                 <View
@@ -612,21 +648,21 @@ function AppContent() {
                   {conditions.length > 0 && (
                     <Text style={styles.eventConditions}>{conditions.join(', ')}</Text>
                   )}
-                  <Text style={styles.eventRepeat}>Répétition: {event.repeat}</Text>
+                  <Text style={styles.eventRepeat}>Repeat: {event.repeat}</Text>
                   <View style={styles.eventActions}>
                     <TouchableOpacity
                       style={styles.editButton}
                       onPress={() => handleEditEvent(index)}
                       accessibilityState={{ disabled: false }}
                     >
-                      <Text style={styles.buttonText}>Modifier</Text>
+                      <Text style={styles.buttonText}>Edit</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.deleteButton}
                       onPress={() => handleDeleteEvent(index)}
                       accessibilityState={{ disabled: false }}
                     >
-                      <Text style={styles.buttonText}>Supprimer</Text>
+                      <Text style={styles.buttonText}>Delete</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -636,7 +672,7 @@ function AppContent() {
         </View>
       </ScrollView>
 
-      {/* Modal pour Action */}
+      {/* Modal for Action */}
       <Modal
         visible={showActionModal}
         transparent={true}
@@ -650,7 +686,7 @@ function AppContent() {
           accessibilityState={{ disabled: false }}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Choisir une action</Text>
+            <Text style={styles.modalTitle}>Choose an action</Text>
             {actionOptions.map((option) => (
               <TouchableOpacity
                 key={option.value}
@@ -677,13 +713,13 @@ function AppContent() {
               onPress={() => setShowActionModal(false)}
               accessibilityState={{ disabled: false }}
             >
-              <Text style={styles.modalCloseText}>Fermer</Text>
+              <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal pour Repeat */}
+      {/* Modal for Repeat */}
       <Modal
         visible={showRepeatModal}
         transparent={true}
@@ -697,7 +733,7 @@ function AppContent() {
           accessibilityState={{ disabled: false }}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Choisir une option de répétition</Text>
+            <Text style={styles.modalTitle}>Choose a repeat option</Text>
             {repeatOptions.map((option) => (
               <TouchableOpacity
                 key={option.value}
@@ -724,7 +760,7 @@ function AppContent() {
               onPress={() => setShowRepeatModal(false)}
               accessibilityState={{ disabled: false }}
             >
-              <Text style={styles.modalCloseText}>Fermer</Text>
+              <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
