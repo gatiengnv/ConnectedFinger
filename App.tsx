@@ -238,6 +238,38 @@ function AppContent() {
     setSelectedTime(new Date());
   };
 
+  // Fonctions de réinitialisation individuelles
+  const resetAction = () => {
+    setAction('');
+  };
+
+  const resetHumidity = () => {
+    setHumidity('');
+  };
+
+  const resetTemperature = () => {
+    setTemperature('');
+  };
+
+  const resetLuminosity = () => {
+    setLuminosity('');
+  };
+
+  const resetDate = () => {
+    setDate('');
+    setSelectedDate(new Date());
+  };
+
+  const resetHour = () => {
+    setHour('');
+    setSelectedTime(new Date());
+  };
+
+  const resetRepeat = () => {
+    setRepeat('');
+    setSelectedDays([]);
+  };
+
   const cancelEdit = () => {
     setEditingIndex(-1);
     resetForm();
@@ -250,13 +282,13 @@ function AppContent() {
     Alert.alert('Succès', 'Les données ont été exportées dans la console. Vérifiez les logs de votre application.');
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (event: any, newDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setSelectedDate(selectedDate);
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const year = selectedDate.getFullYear();
+    if (newDate) {
+      setSelectedDate(newDate);
+      const day = String(newDate.getDate()).padStart(2, '0');
+      const month = String(newDate.getMonth() + 1).padStart(2, '0');
+      const year = newDate.getFullYear();
       setDate(`${day}/${month}/${year}`);
       // Si une date est sélectionnée, forcer repeat à "never"
       setRepeat('never');
@@ -264,12 +296,12 @@ function AppContent() {
     }
   };
 
-  const handleTimeChange = (event: any, selectedTime?: Date) => {
+  const handleTimeChange = (event: any, newTime?: Date) => {
     setShowTimePicker(Platform.OS === 'ios');
-    if (selectedTime) {
-      setSelectedTime(selectedTime);
-      const hours = String(selectedTime.getHours()).padStart(2, '0');
-      const minutes = String(selectedTime.getMinutes()).padStart(2, '0');
+    if (newTime) {
+      setSelectedTime(newTime);
+      const hours = String(newTime.getHours()).padStart(2, '0');
+      const minutes = String(newTime.getMinutes()).padStart(2, '0');
       setHour(`${hours}:${minutes}`);
     }
   };
@@ -304,7 +336,18 @@ function AppContent() {
 
         {/* Formulaire */}
         <View style={styles.form}>
-          <Text style={styles.label}>Action:</Text>
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Action:</Text>
+            {action && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={resetAction}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.clearButtonText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <TouchableOpacity
             style={styles.selectButton}
             onPress={() => setShowActionModal(true)}
@@ -316,7 +359,18 @@ function AppContent() {
             <Text style={styles.selectArrow}>▼</Text>
           </TouchableOpacity>
 
-          <Text style={styles.label}>Humidity (%):</Text>
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Humidity (%):</Text>
+            {humidity && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={resetHumidity}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.clearButtonText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <TextInput
             style={styles.input}
             value={humidity}
@@ -326,7 +380,18 @@ function AppContent() {
             placeholderTextColor="#999"
           />
 
-          <Text style={styles.label}>Temperature (°C):</Text>
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Temperature (°C):</Text>
+            {temperature && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={resetTemperature}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.clearButtonText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <TextInput
             style={styles.input}
             value={temperature}
@@ -336,7 +401,18 @@ function AppContent() {
             placeholderTextColor="#999"
           />
 
-          <Text style={styles.label}>Luminosity (lx):</Text>
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Luminosity (lx):</Text>
+            {luminosity && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={resetLuminosity}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.clearButtonText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <TextInput
             style={styles.input}
             value={luminosity}
@@ -346,7 +422,18 @@ function AppContent() {
             placeholderTextColor="#999"
           />
 
-          <Text style={styles.label}>Date:</Text>
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Date:</Text>
+            {date && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={resetDate}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.clearButtonText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <TouchableOpacity
             style={[styles.dateButton, (repeat && repeat !== 'never' && repeat !== '') && styles.dateButtonDisabled]}
             onPress={() => {
@@ -372,7 +459,18 @@ function AppContent() {
             />
           )}
 
-          <Text style={styles.label}>Hour:</Text>
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Hour:</Text>
+            {hour && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={resetHour}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.clearButtonText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <TouchableOpacity
             style={styles.dateButton}
             onPress={() => setShowTimePicker(true)}
@@ -392,7 +490,18 @@ function AppContent() {
             />
           )}
 
-          <Text style={styles.label}>Repeat:</Text>
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Repeat:</Text>
+            {repeat && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={resetRepeat}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.clearButtonText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <TouchableOpacity
             style={[styles.selectButton, date && styles.selectButtonDisabled]}
             onPress={() => {
@@ -469,7 +578,7 @@ function AppContent() {
               onPress={resetForm}
               accessibilityState={{ disabled: false }}
             >
-              <Text style={styles.buttonText}>Réinitialiser</Text>
+              <Text style={styles.buttonText}>Réinitialiser tout</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -661,6 +770,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  fieldContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  clearButton: {
+    backgroundColor: '#dc3545',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  clearButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    lineHeight: 18,
   },
   label: {
     fontSize: 16,
