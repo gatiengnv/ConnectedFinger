@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import NetInfo from '@react-native-community/netinfo';
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -49,7 +50,6 @@ function App() {
 function AppContent() {
   const safeAreaInsets = useSafeAreaInsets();
 
-  // États du formulaire
   const [action, setAction] = useState('');
   const [humidity, setHumidity] = useState('');
   const [temperature, setTemperature] = useState('');
@@ -59,17 +59,19 @@ function AppContent() {
   const [repeat, setRepeat] = useState('');
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
 
-  // États de l'application
   const [events, setEvents] = useState<Event[]>([]);
   const [editingIndex, setEditingIndex] = useState(-1);
 
-  // États pour les date/time pickers
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [wifiName, setWifiName] = useState<string | null>(null);
+
+  const ESP32_IP = '192.168.4.1';
+
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(new Date());
 
-  // États pour les modals de sélection
   const [showActionModal, setShowActionModal] = useState(false);
   const [showRepeatModal, setShowRepeatModal] = useState(false);
 
@@ -88,9 +90,15 @@ function AppContent() {
     { value: 'days', label: 'Custom Days' },
   ];
 
-  // Charger les événements au démarrage
   useEffect(() => {
     loadEvents();
+    checkWifiConnection();
+
+    const unsubscribe = NetInfo.addEventListener(_state => {
+      checkWifiConnection();
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadEvents = async () => {
@@ -101,7 +109,26 @@ function AppContent() {
         setEvents(data.events || []);
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des événements:', error);
+      console.error('Error loading events:', error);
+    }
+  };
+
+  const checkWifiConnection = async () => {
+    try {
+      const state = await NetInfo.fetch();
+      console.log('NetInfo state:', JSON.stringify(state, null, 2));
+
+      if (state.type === 'wifi') {
+        const ssid = state.details?.ssid || null;
+        setWifiName(ssid);
+        console.log('WiFi SSID:', ssid);
+      } else {
+        setWifiName(null);
+        console.log('Not connected to WiFi, type:', state.type);
+      }
+    } catch (error) {
+      console.error('Error checking WiFi:', error);
+      setWifiName(null);
     }
   };
 
@@ -109,9 +136,47 @@ function AppContent() {
     try {
       await AsyncStorage.setItem('eventsData', JSON.stringify({ events: newEvents }));
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+      console.error('Error saving:', error);
     }
   };
+
+  const syncToEsp32 = async () => {
+
+    if (events.length === 0) {
+      Alert.alert('Error', 'No events to sync. Please add at least one event.');
+      return;
+    }
+
+    setIsSyncing(true);
+
+    try {
+      const dataToSend = { events };
+
+      const response = await fetch(`http://${ESP32_IP}/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', `${events.length} event(s) synced successfully!`);
+      } else {
+        const errorText = await response.text();
+        Alert.alert('Error', `Sync failed: ${response.status} - ${errorText}`);
+      }
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      Alert.alert(
+        'Connection Error',
+        `Unable to connect to ESP32.\n\nMake sure that:\n- ESP32 is powered on\n- You are connected to "FingerKonnect" WiFi\n- ESP32 is functioning properly\n\nError: ${error.message}`
+      );
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
 
   const toggleDay = (day: string) => {
     setSelectedDays(prev =>
@@ -128,7 +193,6 @@ function AppContent() {
     const hasCondition = humidity || temperature || luminosity;
     const hasDateTime = date || hour;
 
-    // Si aucune condition et aucune date/heure, erreur
     if (!hasCondition && !hasDateTime) {
       Alert.alert(
         'Error',
@@ -240,7 +304,6 @@ function AppContent() {
     setSelectedTime(new Date());
   };
 
-  // Fonctions de réinitialisation individuelles
   const resetAction = () => {
     setAction('');
   };
@@ -272,7 +335,6 @@ function AppContent() {
     setSelectedDays([]);
   };
 
-  // Validation functions for input values
   const handleHumidityChange = (value: string) => {
     if (value === '' || value === '-') {
       setHumidity(value);
@@ -319,7 +381,6 @@ function AppContent() {
       const month = String(newDate.getMonth() + 1).padStart(2, '0');
       const year = newDate.getFullYear();
       setDate(`${day}/${month}/${year}`);
-      // If a date is selected, force repeat to "one_time"
       setRepeat('one_time');
       setSelectedDays([]);
     }
@@ -340,7 +401,6 @@ function AppContent() {
     if (value !== 'days') {
       setSelectedDays([]);
     }
-    // If repeat is not "one_time", clear the date
     if (value !== 'one_time' && value !== '') {
       setDate('');
       setSelectedDate(new Date());
@@ -352,7 +412,6 @@ function AppContent() {
       <ScrollView style={styles.scrollView}>
         <Text style={styles.title}>FingerKonnect</Text>
 
-        {/* Form */}
         <View style={styles.form}>
           <View style={styles.fieldContainer}>
             <Text style={styles.label}>Action:</Text>
@@ -563,7 +622,6 @@ function AppContent() {
             </View>
           )}
 
-          {/* Action buttons */}
           <View style={styles.formActions}>
             {editingIndex === -1 ? (
               <TouchableOpacity
@@ -599,9 +657,30 @@ function AppContent() {
               <Text style={styles.buttonText}>Reset All</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.wifiStatusContainer}>
+            <View style={styles.wifiStatusContent}>
+              <View style={styles.wifiNameContainer}>
+                <Text style={styles.wifiNameLabel}>WiFi Network: </Text>
+                <Text style={styles.wifiNameValue}>
+                  {wifiName || 'Not connected'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
+            onPress={syncToEsp32}
+            disabled={isSyncing}
+            accessibilityState={{ disabled: isSyncing }}
+          >
+            <Text style={styles.syncButtonText}>
+              {isSyncing ? '⏳ Syncing...' : '🔄 Sync to ESP32'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Events list */}
         <View style={styles.eventsList}>
           <Text style={styles.eventsTitle}>Saved Events ({events.length})</Text>
           {events.length === 0 ? (
@@ -654,7 +733,6 @@ function AppContent() {
         </View>
       </ScrollView>
 
-      {/* Modal for Action */}
       <Modal
         visible={showActionModal}
         transparent={true}
@@ -701,7 +779,6 @@ function AppContent() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal for Repeat */}
       <Modal
         visible={showRepeatModal}
         transparent={true}
@@ -840,7 +917,7 @@ const styles = StyleSheet.create({
     color: '#ccc',
   },
   selectArrow: {
-    fontSize: 12,
+    fontSize: 16,
     color: '#666',
     marginLeft: 10,
   },
@@ -1038,6 +1115,89 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
+  },
+  syncButton: {
+    backgroundColor: '#007bff',
+    padding: 12,
+    borderRadius: 5,
+    marginVertical: 5,
+    alignItems: 'center',
+  },
+  syncButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  syncButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  wifiStatusContainer: {
+    marginTop: 10,
+    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  wifiStatusContent: {
+    flex: 1,
+  },
+  wifiStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  wifiStatusIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  wifiStatusConnected: {
+    backgroundColor: '#28a745',
+  },
+  wifiStatusDisconnected: {
+    backgroundColor: '#dc3545',
+  },
+  wifiStatusText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  wifiStatusTextConnected: {
+    color: '#28a745',
+  },
+  wifiStatusTextDisconnected: {
+    color: '#dc3545',
+  },
+  wifiNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  wifiNameLabel: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  wifiNameValue: {
+    fontSize: 14,
+    color: '#007bff',
+    fontWeight: '600',
+  },
+  wifiNetworkName: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  wifiWarning: {
+    color: '#dc3545',
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 5,
   },
 });
 
