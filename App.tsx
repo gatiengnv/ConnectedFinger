@@ -170,7 +170,7 @@ function AppContent() {
       console.error('Sync error:', error);
       Alert.alert(
         'Connection Error',
-        `Unable to connect to ESP32.\n\nMake sure that:\n- ESP32 is powered on\n- You are connected to "FingerKonnect" WiFi\n- ESP32 is functioning properly\n\nError: ${error.message}`
+        `Unable to connect to your connected finger.\n\nMake sure that:\n- your connected finger is powered on\n- You are connected to "FingerKonnect" WiFi\n- Your connected finger is functioning properly\n\nError: ${error.message}`
       );
     } finally {
       setIsSyncing(false);
@@ -676,7 +676,7 @@ function AppContent() {
             accessibilityState={{ disabled: isSyncing }}
           >
             <Text style={styles.syncButtonText}>
-              {isSyncing ? '⏳ Syncing...' : '🔄 Sync to ESP32'}
+              {isSyncing ? '⏳ Syncing...' : '🔄 Sync to your connected finger'}
             </Text>
           </TouchableOpacity>
         </View>
