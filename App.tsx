@@ -16,13 +16,14 @@ import {
   Alert,
   Platform,
   Modal,
+  Animated,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import NetInfo from '@react-native-community/netinfo';
 import {
   SafeAreaProvider,
-  useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
 interface EventCondition {
@@ -48,7 +49,7 @@ function App() {
 }
 
 function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
+  const [fadeAnim] = useState(new Animated.Value(0));
 
   const [action, setAction] = useState('');
   const [humidity, setHumidity] = useState('');
@@ -94,11 +95,18 @@ function AppContent() {
     loadEvents();
     checkWifiConnection();
 
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+
     const unsubscribe = NetInfo.addEventListener(_state => {
       checkWifiConnection();
     });
 
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadEvents = async () => {
@@ -408,194 +416,222 @@ function AppContent() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
-      <ScrollView style={styles.scrollView}>
-        <Text style={styles.title}>FingerKonnect</Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#667eea" />
+      <View style={styles.header}>
+        <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
+          <Text style={styles.headerTitle}>FingerKonnect</Text>
+          <Text style={styles.headerSubtitle}>Smart Automation Control</Text>
+        </Animated.View>
+      </View>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
-        <View style={styles.form}>
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Action:</Text>
-            {action && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={resetAction}
-                accessibilityState={{ disabled: false }}
-              >
-                <Text style={styles.clearButtonText}>✕</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity
-            style={styles.selectButton}
-            onPress={() => setShowActionModal(true)}
-            accessibilityState={{ disabled: false }}
-          >
-            <Text style={[styles.selectButtonText, !action && styles.selectPlaceholder]}>
-              {action ? actionOptions.find(opt => opt.value === action)?.label : '-- Choose an action --'}
-            </Text>
-            <Text style={styles.selectArrow}>▼</Text>
-          </TouchableOpacity>
+        <Animated.View style={[styles.form, { opacity: fadeAnim }]}>
+          <Text style={styles.sectionTitle}>⚙️ Event Configuration</Text>
 
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Humidity (%):</Text>
-            {humidity && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={resetHumidity}
-                accessibilityState={{ disabled: false }}
-              >
-                <Text style={styles.clearButtonText}>✕</Text>
-              </TouchableOpacity>
-            )}
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>🎯 Action</Text>
+              {action && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={resetAction}
+                  accessibilityState={{ disabled: false }}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.selectButton}
+              onPress={() => setShowActionModal(true)}
+              accessibilityState={{ disabled: false }}
+            >
+              <Text style={[styles.selectButtonText, !action && styles.selectPlaceholder]}>
+                {action ? actionOptions.find(opt => opt.value === action)?.label : 'Choose an action'}
+              </Text>
+              <Text style={styles.selectArrow}>▼</Text>
+            </TouchableOpacity>
           </View>
-          <TextInput
-            style={styles.input}
-            value={humidity}
-            onChangeText={handleHumidityChange}
-            keyboardType="numeric"
-            placeholder="0-100"
-            placeholderTextColor="#999"
-          />
 
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Temperature (°C):</Text>
-            {temperature && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={resetTemperature}
-                accessibilityState={{ disabled: false }}
-              >
-                <Text style={styles.clearButtonText}>✕</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <TextInput
-            style={styles.input}
-            value={temperature}
-            onChangeText={handleTemperatureChange}
-            keyboardType="numeric"
-            placeholder="-100 to 100"
-            placeholderTextColor="#999"
-          />
+          <View style={styles.divider} />
+          <Text style={styles.sectionTitle}>🌡️ Conditions</Text>
 
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Luminosity (%):</Text>
-            {luminosity && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={resetLuminosity}
-                accessibilityState={{ disabled: false }}
-              >
-                <Text style={styles.clearButtonText}>✕</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <TextInput
-            style={styles.input}
-            value={luminosity}
-            onChangeText={handleLuminosityChange}
-            keyboardType="numeric"
-            placeholder="0-100"
-            placeholderTextColor="#999"
-          />
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Date:</Text>
-            {date && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={resetDate}
-                accessibilityState={{ disabled: false }}
-              >
-                <Text style={styles.clearButtonText}>✕</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity
-            style={[styles.dateButton, (repeat && repeat !== 'one_time' && repeat !== '') && styles.dateButtonDisabled]}
-            onPress={() => {
-              if (repeat && repeat !== 'one_time' && repeat !== '') {
-                Alert.alert('Date Locked', 'You must first set Repeat to "One Time" to select a date.');
-                return;
-              }
-              setShowDatePicker(true);
-            }}
-            disabled={!!(repeat && repeat !== 'one_time' && repeat !== '')}
-            accessibilityState={{ disabled: Boolean(repeat && repeat !== 'one_time' && repeat !== '') }}
-          >
-            <Text style={[styles.dateButtonText, (repeat && repeat !== 'one_time' && repeat !== '') && styles.dateButtonTextDisabled]}>
-              {date || 'Select a date'}
-            </Text>
-          </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>💧 Humidity (%)</Text>
+              {humidity && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={resetHumidity}
+                  accessibilityState={{ disabled: false }}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TextInput
+              style={styles.input}
+              value={humidity}
+              onChangeText={handleHumidityChange}
+              keyboardType="numeric"
+              placeholder="0-100"
+              placeholderTextColor="#a0aec0"
             />
-          )}
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Hour:</Text>
-            {hour && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={resetHour}
-                accessibilityState={{ disabled: false }}
-              >
-                <Text style={styles.clearButtonText}>✕</Text>
-              </TouchableOpacity>
-            )}
           </View>
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowTimePicker(true)}
-            accessibilityState={{ disabled: false }}
-          >
-            <Text style={styles.dateButtonText}>
-              {hour || 'Select a time'}
-            </Text>
-          </TouchableOpacity>
-          {showTimePicker && (
-            <DateTimePicker
-              value={selectedTime}
-              mode="time"
-              display="default"
-              onChange={handleTimeChange}
-              is24Hour={true}
+
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>🌡️ Temperature (°C)</Text>
+              {temperature && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={resetTemperature}
+                  accessibilityState={{ disabled: false }}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TextInput
+              style={styles.input}
+              value={temperature}
+              onChangeText={handleTemperatureChange}
+              keyboardType="numeric"
+              placeholder="-100 to 100"
+              placeholderTextColor="#a0aec0"
             />
-          )}
+          </View>
 
-          <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Repeat:</Text>
-            {repeat && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={resetRepeat}
-                accessibilityState={{ disabled: false }}
-              >
-                <Text style={styles.clearButtonText}>✕</Text>
-              </TouchableOpacity>
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>☀️ Luminosity (%)</Text>
+              {luminosity && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={resetLuminosity}
+                  accessibilityState={{ disabled: false }}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TextInput
+              style={styles.input}
+              value={luminosity}
+              onChangeText={handleLuminosityChange}
+              keyboardType="numeric"
+              placeholder="0-100"
+              placeholderTextColor="#a0aec0"
+            />
+          </View>
+
+          <View style={styles.divider} />
+          <Text style={styles.sectionTitle}>📅 Schedule</Text>
+
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>📅 Date</Text>
+              {date && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={resetDate}
+                  accessibilityState={{ disabled: false }}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.dateButton, (repeat && repeat !== 'one_time' && repeat !== '') && styles.dateButtonDisabled]}
+              onPress={() => {
+                if (repeat && repeat !== 'one_time' && repeat !== '') {
+                  Alert.alert('Date Locked', 'You must first set Repeat to "One Time" to select a date.');
+                  return;
+                }
+                setShowDatePicker(true);
+              }}
+              disabled={!!(repeat && repeat !== 'one_time' && repeat !== '')}
+              accessibilityState={{ disabled: Boolean(repeat && repeat !== 'one_time' && repeat !== '') }}
+            >
+              <Text style={[styles.dateButtonText, (repeat && repeat !== 'one_time' && repeat !== '') && styles.dateButtonTextDisabled]}>
+                {date || 'Select a date'}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+              />
             )}
           </View>
-          <TouchableOpacity
-            style={[styles.selectButton, date && styles.selectButtonDisabled]}
-            onPress={() => {
-              if (date) {
-                Alert.alert('Repeat Locked', 'Cannot modify Repeat when a date is selected. Repeat is automatically "One Time".');
-                return;
-              }
-              setShowRepeatModal(true);
-            }}
-            disabled={Boolean(date)}
-            accessibilityState={{ disabled: Boolean(date) }}
-          >
-            <Text style={[styles.selectButtonText, !repeat && styles.selectPlaceholder, date && styles.selectDisabled]}>
-              {repeat ? repeatOptions.find(opt => opt.value === repeat)?.label : '-- Choose an option --'}
-            </Text>
-            <Text style={[styles.selectArrow, date && styles.selectDisabled]}>▼</Text>
-          </TouchableOpacity>
+
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>🕐 Time</Text>
+              {hour && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={resetHour}
+                  accessibilityState={{ disabled: false }}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowTimePicker(true)}
+              accessibilityState={{ disabled: false }}
+            >
+              <Text style={styles.dateButtonText}>
+                {hour || 'Select a time'}
+              </Text>
+            </TouchableOpacity>
+            {showTimePicker && (
+              <DateTimePicker
+                value={selectedTime}
+                mode="time"
+                display="default"
+                onChange={handleTimeChange}
+                is24Hour={true}
+              />
+            )}
+          </View>
+
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>🔁 Repeat</Text>
+              {repeat && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={resetRepeat}
+                  accessibilityState={{ disabled: false }}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.selectButton, date && styles.selectButtonDisabled]}
+              onPress={() => {
+                if (date) {
+                  Alert.alert('Repeat Locked', 'Cannot modify Repeat when a date is selected. Repeat is automatically "One Time".');
+                  return;
+                }
+                setShowRepeatModal(true);
+              }}
+              disabled={Boolean(date)}
+              accessibilityState={{ disabled: Boolean(date) }}
+            >
+              <Text style={[styles.selectButtonText, !repeat && styles.selectPlaceholder, date && styles.selectDisabled]}>
+                {repeat ? repeatOptions.find(opt => opt.value === repeat)?.label : 'Choose repeat option'}
+              </Text>
+              <Text style={[styles.selectArrow, date && styles.selectDisabled]}>▼</Text>
+            </TouchableOpacity>
+          </View>
 
           {repeat === 'days' && (
             <View style={styles.daysContainer}>
@@ -679,9 +715,9 @@ function AppContent() {
               {isSyncing ? '⏳ Syncing...' : '🔄 Sync to your connected finger'}
             </Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
-        <View style={styles.eventsList}>
+        <Animated.View style={[styles.eventsList, { opacity: fadeAnim }]}>
           <Text style={styles.eventsTitle}>Saved Events ({events.length})</Text>
           {events.length === 0 ? (
             <Text style={styles.noEvents}>No saved events.</Text>
@@ -730,7 +766,7 @@ function AppContent() {
               );
             })
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
 
       <Modal
@@ -831,29 +867,66 @@ function AppContent() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f7fa',
+    backgroundColor: '#f0f4f8',
+  },
+  header: {
+    backgroundColor: '#667eea',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerContent: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#e0e7ff',
+    marginTop: 5,
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 20,
-    color: '#333',
-  },
   form: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 8,
-    marginHorizontal: 15,
+    backgroundColor: '#ffffff',
+    padding: 24,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginTop: 20,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2d3748',
+    marginTop: 8,
+    marginBottom: 16,
+    letterSpacing: 0.3,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 20,
+  },
+  fieldWrapper: {
+    marginBottom: 16,
   },
   fieldContainer: {
     flexDirection: 'row',
@@ -861,343 +934,383 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   clearButton: {
-    backgroundColor: '#dc3545',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
+    backgroundColor: '#fc8181',
+    borderRadius: 14,
+    width: 26,
+    height: 26,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    shadowColor: '#fc8181',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
   },
   clearButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    lineHeight: 18,
+    lineHeight: 16,
   },
   label: {
-    fontSize: 16,
-    marginTop: 10,
-    marginBottom: 5,
-    fontWeight: '500',
-    color: '#333',
+    fontSize: 15,
+    marginBottom: 8,
+    fontWeight: '600',
+    color: '#4a5568',
+    letterSpacing: 0.2,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 14,
     fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#333',
+    backgroundColor: '#f7fafc',
+    color: '#2d3748',
+    fontWeight: '500',
   },
   selectButton: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 12,
-    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: '#f7fafc',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   selectButtonDisabled: {
-    backgroundColor: '#f0f0f0',
-    borderColor: '#ccc',
+    backgroundColor: '#edf2f7',
+    borderColor: '#cbd5e0',
   },
   selectButtonText: {
     fontSize: 16,
-    color: '#333',
+    color: '#2d3748',
     flex: 1,
+    fontWeight: '500',
   },
   selectPlaceholder: {
-    color: '#999',
+    color: '#a0aec0',
   },
   selectDisabled: {
-    color: '#ccc',
+    color: '#cbd5e0',
   },
   selectArrow: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: '#667eea',
     marginLeft: 10,
+    fontWeight: 'bold',
   },
   dateButton: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 12,
-    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: '#f7fafc',
     alignItems: 'center',
   },
   dateButtonText: {
     fontSize: 16,
-    color: '#333',
+    color: '#2d3748',
+    fontWeight: '500',
   },
   dateButtonDisabled: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#edf2f7',
   },
   dateButtonTextDisabled: {
-    color: '#ccc',
+    color: '#cbd5e0',
   },
   daysContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 10,
+    marginTop: 12,
+    gap: 8,
   },
   dayButton: {
-    borderWidth: 1,
-    borderColor: '#007bff',
-    borderRadius: 5,
-    padding: 10,
-    margin: 5,
-    minWidth: 45,
+    borderWidth: 2,
+    borderColor: '#667eea',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minWidth: 50,
     alignItems: 'center',
+    backgroundColor: '#ffffff',
   },
   dayButtonSelected: {
-    backgroundColor: '#007bff',
-  },
-  dayButtonText: {
-    color: '#007bff',
-    fontWeight: '500',
-  },
-  dayButtonTextSelected: {
-    color: 'white',
-  },
-  formActions: {
-    marginTop: 15,
-  },
-  addButton: {
-    backgroundColor: '#007bff',
-    padding: 12,
-    borderRadius: 5,
-    marginVertical: 5,
-    alignItems: 'center',
-  },
-  updateButton: {
-    backgroundColor: '#28a745',
-    padding: 12,
-    borderRadius: 5,
-    marginVertical: 5,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#6c757d',
-    padding: 12,
-    borderRadius: 5,
-    marginVertical: 5,
-    alignItems: 'center',
-  },
-  resetButton: {
-    backgroundColor: '#dc3545',
-    padding: 12,
-    borderRadius: 5,
-    marginVertical: 5,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  eventsList: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 8,
-    marginHorizontal: 15,
-    marginBottom: 20,
-    shadowColor: '#000',
+    backgroundColor: '#667eea',
+    shadowColor: '#667eea',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
+  dayButtonText: {
+    color: '#667eea',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  dayButtonTextSelected: {
+    color: 'white',
+    fontWeight: '700',
+  },
+  formActions: {
+    marginTop: 20,
+    gap: 10,
+  },
+  addButton: {
+    backgroundColor: '#667eea',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  updateButton: {
+    backgroundColor: '#48bb78',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#48bb78',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#718096',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#718096',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  resetButton: {
+    backgroundColor: '#f56565',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#f56565',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
+  eventsList: {
+    backgroundColor: '#ffffff',
+    padding: 24,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginBottom: 30,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   eventsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 20,
+    color: '#2d3748',
+    letterSpacing: 0.3,
   },
   noEvents: {
     fontStyle: 'italic',
-    color: '#666',
+    color: '#a0aec0',
+    textAlign: 'center',
+    paddingVertical: 20,
+    fontSize: 15,
   },
   eventItem: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: '#f7fafc',
   },
   eventItemEditing: {
-    backgroundColor: '#f8f9fa',
-    borderColor: '#007bff',
+    backgroundColor: '#ebf4ff',
+    borderColor: '#667eea',
     borderWidth: 2,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   eventAction: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 5,
-    color: '#333',
+    fontWeight: '700',
+    fontSize: 17,
+    marginBottom: 8,
+    color: '#2d3748',
+    letterSpacing: 0.2,
   },
   eventConditions: {
-    color: '#555',
-    marginBottom: 5,
+    color: '#4a5568',
+    marginBottom: 6,
+    fontSize: 14,
+    lineHeight: 20,
   },
   eventRepeat: {
-    color: '#555',
-    marginBottom: 10,
+    color: '#718096',
+    marginBottom: 12,
+    fontSize: 14,
+    fontWeight: '500',
   },
   eventActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    gap: 8,
   },
   editButton: {
-    backgroundColor: '#ffc107',
-    padding: 8,
-    borderRadius: 5,
-    marginLeft: 10,
+    backgroundColor: '#ed8936',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    shadowColor: '#ed8936',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   deleteButton: {
-    backgroundColor: '#dc3545',
-    padding: 8,
-    borderRadius: 5,
-    marginLeft: 10,
+    backgroundColor: '#f56565',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    shadowColor: '#f56565',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    width: '80%',
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 28,
+    width: '85%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 20,
+    color: '#2d3748',
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
   modalOption: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: '#f7fafc',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
   },
   modalOptionSelected: {
-    backgroundColor: '#e7f3ff',
+    backgroundColor: '#ebf4ff',
+    borderColor: '#667eea',
   },
   modalOptionText: {
     fontSize: 16,
-    color: '#333',
+    color: '#4a5568',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   modalOptionTextSelected: {
-    color: '#007bff',
-    fontWeight: '600',
+    color: '#667eea',
+    fontWeight: '700',
   },
   modalCloseButton: {
-    marginTop: 15,
-    padding: 12,
-    backgroundColor: '#6c757d',
-    borderRadius: 5,
+    marginTop: 16,
+    padding: 14,
+    backgroundColor: '#718096',
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#718096',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   modalCloseText: {
     color: 'white',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 16,
+    letterSpacing: 0.3,
   },
   syncButton: {
-    backgroundColor: '#007bff',
-    padding: 12,
-    borderRadius: 5,
-    marginVertical: 5,
+    backgroundColor: '#667eea',
+    padding: 16,
+    borderRadius: 14,
+    marginTop: 12,
     alignItems: 'center',
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   syncButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#cbd5e0',
+    shadowOpacity: 0.1,
   },
   syncButtonText: {
     color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 17,
+    letterSpacing: 0.5,
   },
   wifiStatusContainer: {
-    marginTop: 10,
-    marginBottom: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#f8f9fa',
-    padding: 12,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    marginTop: 8,
+    marginBottom: 8,
+    backgroundColor: '#f7fafc',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
   },
   wifiStatusContent: {
     flex: 1,
   },
-  wifiStatusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  wifiStatusIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginLeft: 10,
-  },
-  wifiStatusConnected: {
-    backgroundColor: '#28a745',
-  },
-  wifiStatusDisconnected: {
-    backgroundColor: '#dc3545',
-  },
-  wifiStatusText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  wifiStatusTextConnected: {
-    color: '#28a745',
-  },
-  wifiStatusTextDisconnected: {
-    color: '#dc3545',
-  },
   wifiNameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 5,
+    justifyContent: 'center',
   },
   wifiNameLabel: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-  },
-  wifiNameValue: {
-    fontSize: 14,
-    color: '#007bff',
+    fontSize: 15,
+    color: '#4a5568',
     fontWeight: '600',
   },
-  wifiNetworkName: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  wifiWarning: {
-    color: '#dc3545',
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 5,
+  wifiNameValue: {
+    fontSize: 15,
+    color: '#667eea',
+    fontWeight: '700',
   },
 });
 
