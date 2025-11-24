@@ -41,6 +41,13 @@ interface Event {
   repeat: string;
 }
 
+interface EventTemplate {
+  name: string;
+  description: string;
+  icon: string;
+  event: Event;
+}
+
 function App() {
   return (
     <SafeAreaProvider>
@@ -75,8 +82,100 @@ function AppContent() {
 
   const [showActionModal, setShowActionModal] = useState(false);
   const [showRepeatModal, setShowRepeatModal] = useState(false);
+  const [showShopModal, setShowShopModal] = useState(false);
 
   const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+  const eventTemplates: EventTemplate[] = [
+    {
+      name: 'Morning Coffee',
+      description: 'Click every day at 8:00 AM',
+      icon: '☕',
+      event: {
+        name: 'Morning Coffee',
+        action: 'click',
+        condition: { hour: '08:00' },
+        repeat: 'always',
+      },
+    },
+    {
+      name: 'Lunch Reminder',
+      description: 'Click every day at 12:00 PM',
+      icon: '🍽️',
+      event: {
+        name: 'Lunch Reminder',
+        action: 'click',
+        condition: { hour: '12:00' },
+        repeat: 'always',
+      },
+    },
+    {
+      name: 'Wake Up Call',
+      description: 'Double click at 7:00 AM',
+      icon: '⏰',
+      event: {
+        name: 'Wake Up Call',
+        action: 'double_click',
+        condition: { hour: '07:00' },
+        repeat: 'always',
+      },
+    },
+    {
+      name: 'Evening Routine',
+      description: 'Click every day at 9:00 PM',
+      icon: '🌙',
+      event: {
+        name: 'Evening Routine',
+        action: 'click',
+        condition: { hour: '21:00' },
+        repeat: 'always',
+      },
+    },
+    {
+      name: 'Workday Start',
+      description: 'Click weekdays at 9:00 AM',
+      icon: '💼',
+      event: {
+        name: 'Workday Start',
+        action: 'click',
+        condition: { hour: '09:00' },
+        repeat: 'MoTuWeThFr',
+      },
+    },
+    {
+      name: 'Weekend Alert',
+      description: 'Click on weekends at 10:00 AM',
+      icon: '🎉',
+      event: {
+        name: 'Weekend Alert',
+        action: 'click',
+        condition: { hour: '10:00' },
+        repeat: 'SaSu',
+      },
+    },
+    {
+      name: 'Bright Light',
+      description: 'Click when luminosity > 80%',
+      icon: '☀️',
+      event: {
+        name: 'Bright Light',
+        action: 'click',
+        condition: { luminosity: 80 },
+        repeat: 'always',
+      },
+    },
+    {
+      name: 'Hot Temperature',
+      description: 'Click when temperature > 30°C',
+      icon: '🌡️',
+      event: {
+        name: 'Hot Temperature',
+        action: 'click',
+        condition: { temperature: 30 },
+        repeat: 'always',
+      },
+    },
+  ];
 
   const actionOptions = [
     { value: '', label: '-- Choose an action --' },
@@ -403,6 +502,14 @@ function AppContent() {
     }
   };
 
+  const handleAddTemplate = (template: EventTemplate) => {
+    const newEvents = [...events, template.event];
+    setEvents(newEvents);
+    saveEvents(newEvents);
+    setShowShopModal(false);
+    Alert.alert('Success', `"${template.name}" template added successfully!`);
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#667eea" />
@@ -410,6 +517,13 @@ function AppContent() {
         <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
           <Text style={styles.headerTitle}>FingerKonnect</Text>
           <Text style={styles.headerSubtitle}>Smart Automation Control</Text>
+          <TouchableOpacity
+            style={styles.shopButton}
+            onPress={() => setShowShopModal(true)}
+            accessibilityState={{ disabled: false }}
+          >
+            <Text style={styles.shopButtonText}>🛒 Templates Shop</Text>
+          </TouchableOpacity>
         </Animated.View>
       </View>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -860,6 +974,55 @@ function AppContent() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <Modal
+        visible={showShopModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowShopModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.shopModalContent}>
+            <Text style={styles.shopModalTitle}>📦 Templates Shop</Text>
+            <Text style={styles.shopModalSubtitle}>
+              Select a pre-configured event to add instantly
+            </Text>
+            <ScrollView
+              style={styles.templatesScroll}
+              showsVerticalScrollIndicator={false}
+            >
+              {eventTemplates.map((template, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.templateCard}
+                  onPress={() => handleAddTemplate(template)}
+                  accessibilityState={{ disabled: false }}
+                >
+                  <View style={styles.templateHeader}>
+                    <Text style={styles.templateIcon}>{template.icon}</Text>
+                    <View style={styles.templateInfo}>
+                      <Text style={styles.templateName}>{template.name}</Text>
+                      <Text style={styles.templateDescription}>
+                        {template.description}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.templateAddButton}>
+                    <Text style={styles.templateAddText}>+ Add</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.shopCloseButton}
+              onPress={() => setShowShopModal(false)}
+              accessibilityState={{ disabled: false }}
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -896,6 +1059,24 @@ const styles = StyleSheet.create({
     color: '#e0e7ff',
     marginTop: 5,
     fontWeight: '500',
+  },
+  shopButton: {
+    backgroundColor: '#48bb78',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    marginTop: 16,
+    shadowColor: '#48bb78',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  shopButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   scrollView: {
     flex: 1,
@@ -1319,6 +1500,107 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#667eea',
     fontWeight: '700',
+  },
+  shopModalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 24,
+    width: '100%',
+    height: '85%',
+    marginTop: 'auto',
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  shopModalTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#2d3748',
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  shopModalSubtitle: {
+    fontSize: 14,
+    color: '#718096',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+  templatesScroll: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  templateCard: {
+    backgroundColor: '#f7fafc',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  templateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  templateIcon: {
+    fontSize: 36,
+    marginRight: 16,
+  },
+  templateInfo: {
+    flex: 1,
+  },
+  templateName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2d3748',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  templateDescription: {
+    fontSize: 14,
+    color: '#4a5568',
+    fontWeight: '500',
+  },
+  templateAddButton: {
+    backgroundColor: '#667eea',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  templateAddText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  shopCloseButton: {
+    backgroundColor: '#718096',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#718096',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });
 
