@@ -64,8 +64,6 @@ function AppContent() {
   const [editingIndex, setEditingIndex] = useState(-1);
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [wifiName, setWifiName] = useState<string | null>(null);
-
   const ESP32_IP = '192.168.4.1';
 
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -93,19 +91,13 @@ function AppContent() {
 
   useEffect(() => {
     loadEvents();
-    checkWifiConnection();
-
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
       useNativeDriver: true,
     }).start();
 
-    const unsubscribe = NetInfo.addEventListener(_state => {
-      checkWifiConnection();
-    });
-
-    return () => unsubscribe();
+    return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -118,25 +110,6 @@ function AppContent() {
       }
     } catch (error) {
       console.error('Error loading events:', error);
-    }
-  };
-
-  const checkWifiConnection = async () => {
-    try {
-      const state = await NetInfo.fetch();
-      console.log('NetInfo state:', JSON.stringify(state, null, 2));
-
-      if (state.type === 'wifi') {
-        const ssid = state.details?.ssid || null;
-        setWifiName(ssid);
-        console.log('WiFi SSID:', ssid);
-      } else {
-        setWifiName(null);
-        console.log('Not connected to WiFi, type:', state.type);
-      }
-    } catch (error) {
-      console.error('Error checking WiFi:', error);
-      setWifiName(null);
     }
   };
 
@@ -694,17 +667,6 @@ function AppContent() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.wifiStatusContainer}>
-            <View style={styles.wifiStatusContent}>
-              <View style={styles.wifiNameContainer}>
-                <Text style={styles.wifiNameLabel}>WiFi Network: </Text>
-                <Text style={styles.wifiNameValue}>
-                  {wifiName || 'Not connected'}
-                </Text>
-              </View>
-            </View>
-          </View>
-
           <TouchableOpacity
             style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
             onPress={syncToEsp32}
@@ -889,6 +851,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
     letterSpacing: 0.5,
+    marginTop: 40
   },
   headerSubtitle: {
     fontSize: 16,
