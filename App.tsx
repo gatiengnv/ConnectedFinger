@@ -28,8 +28,11 @@ import {
 
 interface EventCondition {
   humidity?: number;
+  humidityOperator?: string;
   temperature?: number;
+  temperatureOperator?: string;
   luminosity?: number;
+  luminosityOperator?: string;
   date?: string;
   hour?: string;
 }
@@ -62,8 +65,11 @@ function AppContent() {
   const [name, setName] = useState('');
   const [action, setAction] = useState('');
   const [humidity, setHumidity] = useState('');
+  const [humidityOperator, setHumidityOperator] = useState('>');
   const [temperature, setTemperature] = useState('');
+  const [temperatureOperator, setTemperatureOperator] = useState('>');
   const [luminosity, setLuminosity] = useState('');
+  const [luminosityOperator, setLuminosityOperator] = useState('>');
   const [date, setDate] = useState('');
   const [hour, setHour] = useState('');
   const [repeat, setRepeat] = useState('');
@@ -83,6 +89,9 @@ function AppContent() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [showRepeatModal, setShowRepeatModal] = useState(false);
   const [showShopModal, setShowShopModal] = useState(false);
+  const [showHumidityOpModal, setShowHumidityOpModal] = useState(false);
+  const [showTemperatureOpModal, setShowTemperatureOpModal] = useState(false);
+  const [showLuminosityOpModal, setShowLuminosityOpModal] = useState(false);
 
   const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
@@ -160,7 +169,7 @@ function AppContent() {
       event: {
         name: 'Bright Light',
         action: 'click',
-        condition: { luminosity: 80 },
+        condition: { luminosity: 80, luminosityOperator: '>' },
         repeat: 'always',
       },
     },
@@ -171,7 +180,7 @@ function AppContent() {
       event: {
         name: 'Hot Temperature',
         action: 'click',
-        condition: { temperature: 30 },
+        condition: { temperature: 30, temperatureOperator: '>' },
         repeat: 'always',
       },
     },
@@ -188,6 +197,12 @@ function AppContent() {
     { value: 'always', label: 'Always' },
     { value: 'one_time', label: 'One Time' },
     { value: 'days', label: 'Custom Days' },
+  ];
+
+  const operatorOptions = [
+    { value: '>', label: '> Greater than' },
+    { value: '=', label: '= Equal to' },
+    { value: '<', label: '< Less than' },
   ];
 
   useEffect(() => {
@@ -309,9 +324,18 @@ function AppContent() {
       repeat: repeatValue || 'one_time',
     };
 
-    if (humidity) event.condition.humidity = parseFloat(humidity);
-    if (temperature) event.condition.temperature = parseFloat(temperature);
-    if (luminosity) event.condition.luminosity = parseFloat(luminosity);
+    if (humidity) {
+      event.condition.humidity = parseFloat(humidity);
+      event.condition.humidityOperator = humidityOperator;
+    }
+    if (temperature) {
+      event.condition.temperature = parseFloat(temperature);
+      event.condition.temperatureOperator = temperatureOperator;
+    }
+    if (luminosity) {
+      event.condition.luminosity = parseFloat(luminosity);
+      event.condition.luminosityOperator = luminosityOperator;
+    }
     if (date) event.condition.date = date;
     if (hour) event.condition.hour = hour;
 
@@ -348,8 +372,11 @@ function AppContent() {
     setName(event.name || '');
     setAction(event.action);
     setHumidity(event.condition.humidity?.toString() || '');
+    setHumidityOperator(event.condition.humidityOperator || '>');
     setTemperature(event.condition.temperature?.toString() || '');
+    setTemperatureOperator(event.condition.temperatureOperator || '>');
     setLuminosity(event.condition.luminosity?.toString() || '');
+    setLuminosityOperator(event.condition.luminosityOperator || '>');
     setDate(event.condition.date || '');
     setHour(event.condition.hour || '');
 
@@ -389,8 +416,11 @@ function AppContent() {
     setName('');
     setAction('');
     setHumidity('');
+    setHumidityOperator('>');
     setTemperature('');
+    setTemperatureOperator('>');
     setLuminosity('');
+    setLuminosityOperator('>');
     setDate('');
     setHour('');
     setRepeat('');
@@ -405,14 +435,17 @@ function AppContent() {
 
   const resetHumidity = () => {
     setHumidity('');
+    setHumidityOperator('>');
   };
 
   const resetTemperature = () => {
     setTemperature('');
+    setTemperatureOperator('>');
   };
 
   const resetLuminosity = () => {
     setLuminosity('');
+    setLuminosityOperator('>');
   };
 
   const resetDate = () => {
@@ -594,14 +627,23 @@ function AppContent() {
                 </TouchableOpacity>
               )}
             </View>
-            <TextInput
-              style={styles.input}
-              value={humidity}
-              onChangeText={handleHumidityChange}
-              keyboardType="numeric"
-              placeholder="0-100"
-              placeholderTextColor="#a0aec0"
-            />
+            <View style={styles.conditionRow}>
+              <TouchableOpacity
+                style={styles.operatorButton}
+                onPress={() => setShowHumidityOpModal(true)}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.operatorButtonText}>{humidityOperator}</Text>
+              </TouchableOpacity>
+              <TextInput
+                style={[styles.input, styles.conditionInput]}
+                value={humidity}
+                onChangeText={handleHumidityChange}
+                keyboardType="numeric"
+                placeholder="0-100"
+                placeholderTextColor="#a0aec0"
+              />
+            </View>
           </View>
 
           <View style={styles.fieldWrapper}>
@@ -617,14 +659,23 @@ function AppContent() {
                 </TouchableOpacity>
               )}
             </View>
-            <TextInput
-              style={styles.input}
-              value={temperature}
-              onChangeText={handleTemperatureChange}
-              keyboardType="numeric"
-              placeholder="-100 to 100"
-              placeholderTextColor="#a0aec0"
-            />
+            <View style={styles.conditionRow}>
+              <TouchableOpacity
+                style={styles.operatorButton}
+                onPress={() => setShowTemperatureOpModal(true)}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.operatorButtonText}>{temperatureOperator}</Text>
+              </TouchableOpacity>
+              <TextInput
+                style={[styles.input, styles.conditionInput]}
+                value={temperature}
+                onChangeText={handleTemperatureChange}
+                keyboardType="numeric"
+                placeholder="-100 to 100"
+                placeholderTextColor="#a0aec0"
+              />
+            </View>
           </View>
 
           <View style={styles.fieldWrapper}>
@@ -640,14 +691,23 @@ function AppContent() {
                 </TouchableOpacity>
               )}
             </View>
-            <TextInput
-              style={styles.input}
-              value={luminosity}
-              onChangeText={handleLuminosityChange}
-              keyboardType="numeric"
-              placeholder="0-100"
-              placeholderTextColor="#a0aec0"
-            />
+            <View style={styles.conditionRow}>
+              <TouchableOpacity
+                style={styles.operatorButton}
+                onPress={() => setShowLuminosityOpModal(true)}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={styles.operatorButtonText}>{luminosityOperator}</Text>
+              </TouchableOpacity>
+              <TextInput
+                style={[styles.input, styles.conditionInput]}
+                value={luminosity}
+                onChangeText={handleLuminosityChange}
+                keyboardType="numeric"
+                placeholder="0-100"
+                placeholderTextColor="#a0aec0"
+              />
+            </View>
           </View>
 
           <View style={styles.divider} />
@@ -838,11 +898,11 @@ function AppContent() {
             events.map((event, index) => {
               const conditions = [];
               if (event.condition.humidity !== undefined)
-                conditions.push(`Humidity: ${event.condition.humidity}%`);
+                conditions.push(`Humidity ${event.condition.humidityOperator || '>'} ${event.condition.humidity}%`);
               if (event.condition.temperature !== undefined)
-                conditions.push(`Temperature: ${event.condition.temperature}°C`);
+                conditions.push(`Temperature ${event.condition.temperatureOperator || '>'} ${event.condition.temperature}°C`);
               if (event.condition.luminosity !== undefined)
-                conditions.push(`Luminosity: ${event.condition.luminosity}%`);
+                conditions.push(`Luminosity ${event.condition.luminosityOperator || '>'} ${event.condition.luminosity}%`);
               if (event.condition.date) conditions.push(`Date: ${event.condition.date}`);
               if (event.condition.hour) conditions.push(`Time: ${event.condition.hour}`);
 
@@ -1023,6 +1083,144 @@ function AppContent() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showHumidityOpModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowHumidityOpModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowHumidityOpModal(false)}
+          accessibilityState={{ disabled: false }}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Humidity Operator</Text>
+            {operatorOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.modalOption,
+                  humidityOperator === option.value && styles.modalOptionSelected
+                ]}
+                onPress={() => {
+                  setHumidityOperator(option.value);
+                  setShowHumidityOpModal(false);
+                }}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={[
+                  styles.modalOptionText,
+                  humidityOperator === option.value && styles.modalOptionTextSelected
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowHumidityOpModal(false)}
+              accessibilityState={{ disabled: false }}
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={showTemperatureOpModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTemperatureOpModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowTemperatureOpModal(false)}
+          accessibilityState={{ disabled: false }}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Temperature Operator</Text>
+            {operatorOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.modalOption,
+                  temperatureOperator === option.value && styles.modalOptionSelected
+                ]}
+                onPress={() => {
+                  setTemperatureOperator(option.value);
+                  setShowTemperatureOpModal(false);
+                }}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={[
+                  styles.modalOptionText,
+                  temperatureOperator === option.value && styles.modalOptionTextSelected
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowTemperatureOpModal(false)}
+              accessibilityState={{ disabled: false }}
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={showLuminosityOpModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLuminosityOpModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowLuminosityOpModal(false)}
+          accessibilityState={{ disabled: false }}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Luminosity Operator</Text>
+            {operatorOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.modalOption,
+                  luminosityOperator === option.value && styles.modalOptionSelected
+                ]}
+                onPress={() => {
+                  setLuminosityOperator(option.value);
+                  setShowLuminosityOpModal(false);
+                }}
+                accessibilityState={{ disabled: false }}
+              >
+                <Text style={[
+                  styles.modalOptionText,
+                  luminosityOperator === option.value && styles.modalOptionTextSelected
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowLuminosityOpModal(false)}
+              accessibilityState={{ disabled: false }}
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -1150,6 +1348,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7fafc',
     color: '#2d3748',
     fontWeight: '500',
+  },
+  conditionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  operatorButton: {
+    backgroundColor: '#667eea',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    minWidth: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  operatorButtonText: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  conditionInput: {
+    flex: 1,
   },
   selectButton: {
     borderWidth: 2,
