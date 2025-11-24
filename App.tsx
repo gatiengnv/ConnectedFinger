@@ -35,6 +35,7 @@ interface EventCondition {
 }
 
 interface Event {
+  name: string;
   action: string;
   condition: EventCondition;
   repeat: string;
@@ -51,6 +52,7 @@ function App() {
 function AppContent() {
   const [fadeAnim] = useState(new Animated.Value(0));
 
+  const [name, setName] = useState('');
   const [action, setAction] = useState('');
   const [humidity, setHumidity] = useState('');
   const [temperature, setTemperature] = useState('');
@@ -106,7 +108,12 @@ function AppContent() {
       const savedEvents = await AsyncStorage.getItem('eventsData');
       if (savedEvents) {
         const data = JSON.parse(savedEvents);
-        setEvents(data.events || []);
+        // Add default names to events that don't have one (migration)
+        const migratedEvents = (data.events || []).map((event: Event, index: number) => ({
+          ...event,
+          name: event.name || `Event ${index + 1}`,
+        }));
+        setEvents(migratedEvents);
       }
     } catch (error) {
       console.error('Error loading events:', error);
@@ -166,6 +173,11 @@ function AppContent() {
   };
 
   const validateForm = (): boolean => {
+    if (!name.trim()) {
+      Alert.alert('Error', 'Please enter a name for the event.');
+      return false;
+    }
+
     if (!action) {
       Alert.alert('Error', 'Please select an action.');
       return false;
@@ -192,6 +204,7 @@ function AppContent() {
     }
 
     const event: Event = {
+      name: name.trim(),
       action: action,
       condition: {},
       repeat: repeatValue || 'one_time',
@@ -233,6 +246,7 @@ function AppContent() {
   const handleEditEvent = (index: number) => {
     const event = events[index];
     setEditingIndex(index);
+    setName(event.name || '');
     setAction(event.action);
     setHumidity(event.condition.humidity?.toString() || '');
     setTemperature(event.condition.temperature?.toString() || '');
@@ -273,6 +287,7 @@ function AppContent() {
   };
 
   const resetForm = () => {
+    setName('');
     setAction('');
     setHumidity('');
     setTemperature('');
@@ -401,6 +416,28 @@ function AppContent() {
 
         <Animated.View style={[styles.form, { opacity: fadeAnim }]}>
           <Text style={styles.sectionTitle}>⚙️ Event Configuration</Text>
+
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>📝 Event Name</Text>
+              {name && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => setName('')}
+                  accessibilityState={{ disabled: false }}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter event name"
+              placeholderTextColor="#a0aec0"
+            />
+          </View>
 
           <View style={styles.fieldWrapper}>
             <View style={styles.fieldContainer}>
@@ -703,6 +740,7 @@ function AppContent() {
                     editingIndex === index && styles.eventItemEditing,
                   ]}
                 >
+                  <Text style={styles.eventName}>{event.name || 'Unnamed Event'}</Text>
                   <Text style={styles.eventAction}>Action: {event.action}</Text>
                   {conditions.length > 0 && (
                     <Text style={styles.eventConditions}>{conditions.join(', ')}</Text>
@@ -1113,6 +1151,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 3,
+  },
+  eventName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#667eea',
+    marginBottom: 8,
+    letterSpacing: 0.3,
   },
   eventAction: {
     fontWeight: '700',
