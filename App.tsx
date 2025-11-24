@@ -18,6 +18,7 @@ import {
   Modal,
   Animated,
   StatusBar,
+  Switch,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -42,6 +43,7 @@ interface Event {
   action: string;
   condition: EventCondition;
   repeat: string;
+  enabled: boolean;
 }
 
 interface EventTemplate {
@@ -105,6 +107,7 @@ function AppContent() {
         action: 'click',
         condition: { hour: '08:00' },
         repeat: 'always',
+        enabled: true,
       },
     },
     {
@@ -116,6 +119,7 @@ function AppContent() {
         action: 'click',
         condition: { hour: '12:00' },
         repeat: 'always',
+        enabled: true,
       },
     },
     {
@@ -127,6 +131,7 @@ function AppContent() {
         action: 'double_click',
         condition: { hour: '07:00' },
         repeat: 'always',
+        enabled: true,
       },
     },
     {
@@ -138,6 +143,7 @@ function AppContent() {
         action: 'click',
         condition: { hour: '21:00' },
         repeat: 'always',
+        enabled: true,
       },
     },
     {
@@ -149,6 +155,7 @@ function AppContent() {
         action: 'click',
         condition: { hour: '09:00' },
         repeat: 'MoTuWeThFr',
+        enabled: true,
       },
     },
     {
@@ -160,6 +167,7 @@ function AppContent() {
         action: 'click',
         condition: { hour: '10:00' },
         repeat: 'SaSu',
+        enabled: true,
       },
     },
     {
@@ -171,6 +179,7 @@ function AppContent() {
         action: 'click',
         condition: { luminosity: 80, luminosityOperator: '>' },
         repeat: 'always',
+        enabled: true,
       },
     },
     {
@@ -182,6 +191,7 @@ function AppContent() {
         action: 'click',
         condition: { temperature: 30, temperatureOperator: '>' },
         repeat: 'always',
+        enabled: true,
       },
     },
   ];
@@ -222,10 +232,11 @@ function AppContent() {
       const savedEvents = await AsyncStorage.getItem('eventsData');
       if (savedEvents) {
         const data = JSON.parse(savedEvents);
-        // Add default names to events that don't have one (migration)
+        // Add default names and enabled status to events that don't have them (migration)
         const migratedEvents = (data.events || []).map((event: Event, index: number) => ({
           ...event,
           name: event.name || `Event ${index + 1}`,
+          enabled: event.enabled !== undefined ? event.enabled : true,
         }));
         setEvents(migratedEvents);
       }
@@ -322,6 +333,7 @@ function AppContent() {
       action: action,
       condition: {},
       repeat: repeatValue || 'one_time',
+      enabled: true,
     };
 
     if (humidity) {
@@ -499,6 +511,13 @@ function AppContent() {
   const cancelEdit = () => {
     setEditingIndex(-1);
     resetForm();
+  };
+
+  const toggleEventEnabled = (index: number) => {
+    const newEvents = [...events];
+    newEvents[index].enabled = !newEvents[index].enabled;
+    setEvents(newEvents);
+    saveEvents(newEvents);
   };
 
   const handleDateChange = (event: any, newDate?: Date) => {
@@ -912,14 +931,35 @@ function AppContent() {
                   style={[
                     styles.eventItem,
                     editingIndex === index && styles.eventItemEditing,
+                    !event.enabled && styles.eventItemDisabled,
                   ]}
                 >
-                  <Text style={styles.eventName}>{event.name || 'Unnamed Event'}</Text>
-                  <Text style={styles.eventAction}>Action: {event.action}</Text>
+                  <View style={styles.eventHeader}>
+                    <Text style={[styles.eventName, !event.enabled && styles.eventNameDisabled]}>
+                      {event.name || 'Unnamed Event'}
+                    </Text>
+                    <View style={styles.switchContainer}>
+                      <Text style={styles.switchLabel}>{event.enabled ? 'ON' : 'OFF'}</Text>
+                      <Switch
+                        value={event.enabled}
+                        onValueChange={() => toggleEventEnabled(index)}
+                        trackColor={{ false: '#cbd5e0', true: '#667eea' }}
+                        thumbColor={event.enabled ? '#ffffff' : '#f4f4f4'}
+                        ios_backgroundColor="#cbd5e0"
+                      />
+                    </View>
+                  </View>
+                  <Text style={[styles.eventAction, !event.enabled && styles.eventTextDisabled]}>
+                    Action: {event.action}
+                  </Text>
                   {conditions.length > 0 && (
-                    <Text style={styles.eventConditions}>{conditions.join(', ')}</Text>
+                    <Text style={[styles.eventConditions, !event.enabled && styles.eventTextDisabled]}>
+                      {conditions.join(', ')}
+                    </Text>
                   )}
-                  <Text style={styles.eventRepeat}>Repeat: {event.repeat}</Text>
+                  <Text style={[styles.eventRepeat, !event.enabled && styles.eventTextDisabled]}>
+                    Repeat: {event.repeat}
+                  </Text>
                   <View style={styles.eventActions}>
                     <TouchableOpacity
                       style={styles.editButton}
@@ -1558,12 +1598,37 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  eventItemDisabled: {
+    backgroundColor: '#edf2f7',
+    borderColor: '#cbd5e0',
+    opacity: 0.7,
+  },
+  eventHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  switchLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#667eea',
+    letterSpacing: 0.5,
+  },
   eventName: {
     fontSize: 20,
+    flex: 1,
     fontWeight: '800',
     color: '#667eea',
-    marginBottom: 8,
     letterSpacing: 0.3,
+  },
+  eventNameDisabled: {
+    color: '#a0aec0',
   },
   eventAction: {
     fontWeight: '700',
@@ -1583,6 +1648,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 14,
     fontWeight: '500',
+  },
+  eventTextDisabled: {
+    color: '#cbd5e0',
   },
   eventActions: {
     flexDirection: 'row',
